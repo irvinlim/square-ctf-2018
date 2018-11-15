@@ -114,6 +114,8 @@ This search space of 6912 items can be solved in a reasonable amount of time.
 
 The rest of the exploit is just to generate the permutations and apply the technique we tried earlier to find the flag.
 
+See [`exploit.py`](./exploit.py) for the complete Python script.
+
 ## Flag
 
 ```sh

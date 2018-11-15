@@ -34,6 +34,8 @@ For the exploit, we can write it in Python using [`libnum`](https://github.com/h
 
 We first find `s1` and `s2` using the [Extended Euclidean Algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm), inverting any negative results as necessary (by modulus). The plaintext `m` can be found by taking `c1^s1 * c2^s2 mod N`, and finally converting the decimal number into a string.
 
+See [`exploit.py`](./exploit.py) for the complete Python script.
+
 ## Flag
 
 ```sh
