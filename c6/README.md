@@ -1,8 +1,10 @@
-# Gates of hell - [ SquareCTF2018_Reversing ]
----
-Joined Square CTF 2018 with TEAM 0x1EA7BEEF
+# C6: Gates of hell
+
+- Category: Reverse
+- URL: <https://squarectf.com/2018/gates_of_hell.html>
 
 ## Description
+
 ```
 C6: gates of hell
 
@@ -16,33 +18,35 @@ This is one of the more interesting challenge I have tried so far. Briefly, we c
 ---
 
 ![gateschallenge.PNG](gateschallenge.PNG)
+
 ## Beginning
 
 First, the type of file was determined to make sure that it is not packed or anything like that.
 
 ```bash
-$ file gates-of-hell 
+$ file gates-of-hell
 gates-of-hell: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), statically linked, stripped
 ```
 
 We can see that the file had been stripped removing valuable information and also it has been statically linked which does not allow one to easily determine what functions had been used here.
 
-Lets try to run the program to look for any  interactions.
+Lets try to run the program to look for any interactions.
 
 ```
-root@kali:~/Desktop# ./gates-of-hell 
+root@kali:~/Desktop# ./gates-of-hell
 root@kali:~/Desktop# ./gates-of-hell asd
 root@kali:~/Desktop# ./gates-of-hell asd asdasdas
 root@kali:~/Desktop# ./gates-of-hell asd asdasdas asdasda
 root@kali:~/Desktop# ./gates-of-hell asd asdasdas asdasda
 root@kali:~/Desktop# ./gates-of-hell asd asdasdas asdasda asd asdasdas asdasda asd asdasdas asdasda asd asdasdas asdasda
 ```
-There did not seem to have much going on outwardly. 
+
+There did not seem to have much going on outwardly.
 
 So let's fire up out gdb to see what is happening.
 
 ```
-gdb-peda$ file gates-of-hell 
+gdb-peda$ file gates-of-hell
 Reading symbols from gates-of-hell...(no debugging symbols found)...done.
 gdb-peda$ info files
 Symbols from "/root/Desktop/gates-of-hell".
@@ -101,6 +105,7 @@ gdb-peda$ x/200i $pc
 .
 
 ```
+
 The program ends here at address 0x80480c8 since it is a syscall to exit. note that EAX was given value of one which signifies an exit. There are also no jumps that jumps out of this address so I have made this assumption.
 
 ---
@@ -111,10 +116,11 @@ There are quite a few commands that are really unfamiliar to me. They are loop, 
 
 There are two loops being used here as we can see in the opcode, `loop`. After some reading up, loop here uses ECX as counter variable and will be decremented after each iterations.
 
-It seems also that there are some array manipulation going on as well. 
+It seems also that there are some array manipulation going on as well.
+
 ```
    0x8048086:	mov    al,BYTE PTR [eax+0x80480ca]
-   ....   
+   ....
    ....
    ....
    0x8048092:	mov    ecx,0x100
@@ -122,7 +128,7 @@ It seems also that there are some array manipulation going on as well.
    ...
    ...
    0x80480a1:	mov    BYTE PTR [ecx+0x80480c9],al
-   
+
 ```
 
 Also it has a relatively large chunk of data stored in the array since there are value 256 in ECX and this ECX is also being used as counter for the loop opcode. This suggests that in this loop, something is done to each element as though there are some sort of adjustments being done.
@@ -156,6 +162,7 @@ There is also a catch; There is a way to mess up the storage of numbers in this 
 
 These are the opertions that occurs when these instructions are executed.
 We can read more about [aad from here](http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/vc3a.htm) and [aam from here](http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/vc4a.htm).
+
 ```
 aam 0x12
 
@@ -171,6 +178,7 @@ aad 0x0f6
 Sign flag is being set if AL has 1 in the Most Significant Bit. For example, 0xF3 in resultant AL will result in Sign Flag being set while 0x73 will not. Another note worth noting is that the EAX registers that the operation will occur on is from a function which will be use to multiply to ebx which we need it to be of value 666.
 
 While it is hard to explain all the details here, I have written a pseudocode of the program.
+
 ```c
 int *temp = argumentList;
 
@@ -183,12 +191,12 @@ if(argc > 16){
         oneInput = temp ;
         temp = &x;
 
-        index = function1(oneInput);     
-    
+        index = function1(oneInput);
+
         // A constraint ia found here
         __asm{
             aam 0x12            // eax from function1 is being operated on
-            aad 0x0F6           
+            aad 0x0F6
         }
 
         z = index ;
@@ -209,12 +217,12 @@ if(argc > 16){
             array_at_0x80480CA[ i - 1 ] = k ; // Same as array_at_0x0x80480C9[ i ]
             --i ;
         }
-          } while (i) ; 
+          } while (i) ;
 
         x = temp - 1;   // on to the next argument
     } while (  temp != 1 ); // while 16 arguments are not being iterated through
     if( y == 666 ){
-    printf("flag is here on server"); 
+    printf("flag is here on server");
     }
     exit();
 }
@@ -231,6 +239,7 @@ Lets take a look at function1 ( located at 0x80481ca ),
 ```
 
 Examining function1,
+
 ```
 gdb-peda$ x/200i $pc
    0x80481ce:	mov    dl,BYTE PTR [esi]
@@ -241,16 +250,16 @@ gdb-peda$ x/200i $pc
    0x80481d9:	mul    bl
    0x80481db:	add    al,dl
    0x80481dd:	call   0x80481ce   # Calls itself again
-   0x80481e2:	ret    
+   0x80481e2:	ret
    0x80481e3:	mov    eax,0x4
    0x80481e8:	mov    ebx,0x1
    0x80481ed:	int    0x80
-   0x80481ef:	ret 
+   0x80481ef:	ret
 ```
 
 There is another constraint being found here. ESI register here contain the argument that you have added. This function will be called 16 times thanks to the loop command with parameter as the input argument.
 
-The ASCII value of the argument is then subtracted by 48 and then compared to see if the result is less than 57. If the number is less than 57 then recursion occurs by calling itself by  At first it looks impossible however these are a byte which means they have just 8 bits and it is possible to overflow the 8 bit space. For example: 0x29 - 0x30 = 0xF9 which gives a number greater than 57 and thus breaks out of the recursion.
+The ASCII value of the argument is then subtracted by 48 and then compared to see if the result is less than 57. If the number is less than 57 then recursion occurs by calling itself by At first it looks impossible however these are a byte which means they have just 8 bits and it is possible to overflow the 8 bit space. For example: 0x29 - 0x30 = 0xF9 which gives a number greater than 57 and thus breaks out of the recursion.
 
 Pseudocode looks something like this
 
@@ -258,8 +267,8 @@ Pseudocode looks something like this
 
 char function1( char *argumentX){
 
-    char d = *argumentX;   
-    char a = 0; 
+    char d = *argumentX;
+    char a = 0;
     argumentX++;        // Goes down the string in the argument
     char compare = d - 48;
     if(compare <= 57){
@@ -268,16 +277,18 @@ char function1( char *argumentX){
     return result;      // This is the index will be pointed to the array chunk
 }
 ```
+
 For my case, I used all single characters as argument followed by a space. This is so that there will be value 0x00 after every argument which allows for the overflow.
 
 ---
+
 ## Solution
 
 Firstly, there are too many ASCII to try out one by one therefore with the constraints found, we can try to reduce the possibilities and narrow to a smaller group of possible arguments.
 
 We can deal with the aam and aad instructions.
 
-aam refers to Adjust AX after Multiplication and aad refers to Adjust AX After Division. 
+aam refers to Adjust AX after Multiplication and aad refers to Adjust AX After Division.
 
 ```
 aam 0x12
@@ -313,7 +324,7 @@ Since we know A = Y/18 and B = Y%18, we can substitute into the result after aad
 
 we get:
     AL = Y/18*246 + Y%18
-       = Y%18 - 10/18*Y         # Because it is a signed number and 247 is actually -10   
+       = Y%18 - 10/18*Y         # Because it is a signed number and 247 is actually -10
 
 Remember that we do not want this value to be signed. This means AL < 127 and AL > 0.
 ```
@@ -376,13 +387,13 @@ There is a loop section for 256 times.
             array_at_0x80480CA[ i - 1 ] = k ; // Same as array_at_0x0x80480C9[ i ]
             --i ;
         }
-          } while (i) ; 
+          } while (i) ;
 ..
 ..
 ..
 ```
-What this effectively does  is that in the first iteration, it will traverse starting from the end of the array down to the first and decrement the element's value if the element is not already 0x00, then in the next iteration, traverse from the last second element to the first and decrement value if not already 0x00 and so on till it reaches the first element in the array.
 
+What this effectively does is that in the first iteration, it will traverse starting from the end of the array down to the first and decrement the element's value if the element is not already 0x00, then in the next iteration, traverse from the last second element to the first and decrement value if not already 0x00 and so on till it reaches the first element in the array.
 
 ```
 Example : LOOP FOR 4 TIMES
@@ -403,7 +414,8 @@ Third Iteration
 Last iteration
     0x1 0x0 0x1 0x1
 ```
-This means for every iteration, changes to element are made and so we have to account for that. 
+
+This means for every iteration, changes to element are made and so we have to account for that.
 
 To view the whole array, we know that the array of interest is in `0x80480CA`.
 
@@ -448,6 +460,7 @@ I was thinking for a really long time also because this is where value is being 
 ```
    0x804806e:	mov    ebx,0x25   #37
 ```
+
 This was perfect. So the problem now is to get the index which will be chosen by function1 since function1 chooses the index of what value to multiply to EBX and our input determines which index get chosen.
 
 #### BRIEF PROGRAM FLOW
@@ -461,8 +474,10 @@ for each of the 16 arguments:
     alter array
 
 Check if EBX = 666
-``` 
+```
+
 This shows that our input argument is mapped to certain numbers which we will eventually want to map it to
+
 ```
 37    *1*3*1*1*1*1*1*2*1*3*1*1*1*1*1*1
 
@@ -475,8 +490,10 @@ We have to keep track of the changes in the array such that as we traverse down 
 For this challenge, I had done it manually by comparing the values that I want with the initial array state.
 
 ### FIRST VALUE
-For the FIRST value to  multiply 37 is 1.
-So we first want to find the index where it is located in the array. 
+
+For the FIRST value to multiply 37 is 1.
+So we first want to find the index where it is located in the array.
+
 ```
 0x80480ca:	0x05	0x09	0x04	0x0f	0x05	0x0b	0x10	0x0e
 0x80480d2:	0x0b	0x0d	0x0d	0x08	0x0c	0x07	0x10	0x02
@@ -498,11 +515,13 @@ ASCII : 81 from 33, Possible Character : Q
 .
 .
 ```
- Also the current state of the array is intial, we do not add anything.
+
+Also the current state of the array is intial, we do not add anything.
 
 Checking with GDB
+
 ```
-gdb-peda$ set args P A A A A A A A A A A A A A A A A A A AA A A A 
+gdb-peda$ set args P A A A A A A A A A A A A A A A A A A AA A A A
 
 .
 .
@@ -510,12 +529,12 @@ gdb-peda$ set args P A A A A A A A A A A A A A A A A A A AA A A A
 [----------------------------------registers-----------------------------------]
 EAX: 0x1                        <----------------------- HERE IS THE TARGET VALUE
 EBX: 0x25 ('%')
-ECX: 0x10 
-EDX: 0xd0 
+ECX: 0x10
+EDX: 0xd0
 ESI: 0xffffd594 --> 0x410041 ('A')
-EDI: 0x0 
-EBP: 0x0 
-ESP: 0xffffd398 --> 0x10 
+EDI: 0x0
+EBP: 0x0
+ESP: 0xffffd398 --> 0x10
 EIP: 0x804808c --> 0xe3f7d231
 EFLAGS: 0x213 (CARRY parity ADJUST zero sign trap INTERRUPT direction overflow)
 [-------------------------------------code-------------------------------------]
@@ -531,7 +550,7 @@ EFLAGS: 0x213 (CARRY parity ADJUST zero sign trap INTERRUPT direction overflow)
 
 ```
 
-Here we get EAX = 0x1 as what we want which we will then multiply with EBX and later stored in EBX; i.e. 37*1
+Here we get EAX = 0x1 as what we want which we will then multiply with EBX and later stored in EBX; i.e. 37\*1
 
 We can justify that by stepping a few lines
 
@@ -539,12 +558,12 @@ We can justify that by stepping a few lines
 [----------------------------------registers-----------------------------------]
 EAX: 0x25 ('%')
 EBX: 0x25 ('%')                <----------------- HERE IS THE RESULT OF 37*1
-ECX: 0x10 
-EDX: 0x0 
+ECX: 0x10
+EDX: 0x0
 ESI: 0xffffd594 --> 0x410041 ('A')
-EDI: 0x0 
-EBP: 0x0 
-ESP: 0xffffd398 --> 0x10 
+EDI: 0x0
+EBP: 0x0
+ESP: 0xffffd398 --> 0x10
 EIP: 0x8048092 --> 0x100b9
 EFLAGS: 0x202 (carry parity adjust zero sign trap INTERRUPT direction overflow)
 [-------------------------------------code-------------------------------------]
@@ -557,9 +576,10 @@ EFLAGS: 0x202 (carry parity adjust zero sign trap INTERRUPT direction overflow)
 ```
 
 ### SECOND VALUE
-Second value from `37    *1*3*1*1*1*1*1*2*1*3*1*1*1*1*1*1 ` is 3.
 
-Looking up the intial table we get 
+Second value from `37 *1*3*1*1*1*1*1*2*1*3*1*1*1*1*1*1` is 3.
+
+Looking up the intial table we get
 
 ```
 0x80480ca:	0x05	0x09	0x04	0x0f	0x05	0x0b	0x10	0x0e
@@ -567,11 +587,13 @@ Looking up the intial table we get
 0x80480da:	0x06	0x04	0x0b	0x04	0x02	0x0d	0x07	0x0a
 0x80480e2:	0x04	0x0c	0x0e	0x10	0x07	0x06	0x03
 ```
+
 Here our values in the table will be decremented by 1. Since we are only interested in elements really close to the start and only for 16 iterations, we wont be affected by the elements near the end not changing.
 
-We need to remember to mentally add the value 1 since it is in the next position of the input arguments. Since we are interested in value 3 (to be multiplied to EBX), we add 3 to 1 = 4 and start searching for 0x4 in the table which we can see in the index 2. 
+We need to remember to mentally add the value 1 since it is in the next position of the input arguments. Since we are interested in value 3 (to be multiplied to EBX), we add 3 to 1 = 4 and start searching for 0x4 in the table which we can see in the index 2.
 
 Adding 48 to 2 to give 50 which is also part of the possible character 2.
+
 ```
 ASCII : 49 from 1, Possible Character : 1
 ASCII : 50 from 2, Possible Character : 2
@@ -579,13 +601,14 @@ ASCII : 51 from 3, Possible Character : 3
 .
 .
 ```
+
 Thus our second argument is 2
 
 Testing it out on GDB
 
 ```
 gdb-peda$ b *0x804808c
-gdb-peda$ set args P 2 A A A A  A A A A A A A A A A  AA 
+gdb-peda$ set args P 2 A A A A  A A A A A A A A A A  AA
 
 .
 .
@@ -593,12 +616,12 @@ gdb-peda$ set args P 2 A A A A  A A A A A A A A A A  AA
 
 EAX: 0x3                           <------------- THE 0x3 WE WANTED
 EBX: 0x25 ('%')
-ECX: 0xf 
-EDX: 0xd0 
+ECX: 0xf
+EDX: 0xd0
 ESI: 0xffffd59b --> 0x410041 ('A')
-EDI: 0x0 
-EBP: 0x0 
-ESP: 0xffffd3ac --> 0xf 
+EDI: 0x0
+EBP: 0x0
+ESP: 0xffffd3ac --> 0xf
 EIP: 0x804808c --> 0xe3f7d231
 EFLAGS: 0x202 (carry parity adjust zero sign trap INTERRUPT direction overflow)
 [-------------------------------------code-------------------------------------]
@@ -619,12 +642,12 @@ gdb-peda$ ni
 [----------------------------------registers-----------------------------------]
 EAX: 0x6f ('o')
 EBX: 0x6f ('o')         <------------0x6f = 111 which is 37*3 which is  correct
-ECX: 0xf 
-EDX: 0x0 
+ECX: 0xf
+EDX: 0x0
 ESI: 0xffffd59b --> 0x410041 ('A')
-EDI: 0x0 
-EBP: 0x0 
-ESP: 0xffffd3ac --> 0xf 
+EDI: 0x0
+EBP: 0x0
+ESP: 0xffffd3ac --> 0xf
 EIP: 0x8048092 --> 0x100b9
 EFLAGS: 0x206 (carry PARITY adjust zero sign trap INTERRUPT direction overflow)
 [-------------------------------------code-------------------------------------]
@@ -641,7 +664,7 @@ As we carry on ...
     37     Iteration  Find          Index    ASCII_Value   Character
     -----------------------------------------------------------------------
     *1          0      1+0=1         32        48+32=80        P
-    
+
     *3          1      3+1=4          2        48+2=50         2
 
     *1          2      1+2=3          30       48+30=78        N
@@ -661,13 +684,13 @@ As we carry on ...
     *3          9      3+9=0xc        35       48+35=83        S
 
     *1          10     1+10=0xb       5        48+5=53         5
-    
+
     *1          11     1+11=0xc       35       48+35=83        S
 
     *1          12     1+12=0xd       9        48+9=57         9
 
     *1          13     1+13=0xe       7        48+7=55         7
-    
+
     *1          14     1+14=0xf       3        48+3=51         3
 
     *1          15     1+15=0x10      6        48+6=54         6
@@ -680,6 +703,7 @@ P 2 N 2 4 @ = 1 1 S 5 S 9 7 3 6
 root@kali:~/Desktop# ./gates-of-hell  P 2 N 2 4 @ = 1 1 S 5 S 9 7 3 6
 flag is here on server
 ```
+
 PERFECT!!
 
 Now we can go on to submit through the "online interface". There is no where for us to submit the flag though it look like a terminal.
@@ -689,12 +713,14 @@ The strange thing in the URL is that it seems to be a perl file. It is almost as
 
 ![gatesfile.PNG](gatesfile.PNG)
 
-We can see that it seems to append behind then only did i realise that the command line is waiting for input. Since the string `P 2 N 2 4 @ = 1 1 S 5 S 9 7 3 6` has to be used as part of URL, we have to encode it. 
+We can see that it seems to append behind then only did i realise that the command line is waiting for input. Since the string `P 2 N 2 4 @ = 1 1 S 5 S 9 7 3 6` has to be used as part of URL, we have to encode it.
 
-After encoding, we get 
+After encoding, we get
+
 ```
 P%202%20N%202%204%20%40%20%3D%201%201%20S%205%20S%209%207%203%206
 ```
+
 Now all we need to do is to prepend a question mark and append the whole string behind the url.
 
 ```
@@ -703,9 +729,8 @@ https://thawing-garden-44258.squarectf.com/cgi-bin/gates-of-hell.pl?P%202%20N%20
 
 ![gatesflag.PNG](gatesflag.PNG)
 
-And VOILA!  THE FLAG IS PRESENTED TO US!!!!!!!!!!!!!!!!!!
+And VOILA! THE FLAG IS PRESENTED TO US!!!!!!!!!!!!!!!!!!
 
-```Flag: flag-526f64696e0000666```
----
-
----
+```
+flag-526f64696e0000666
+```

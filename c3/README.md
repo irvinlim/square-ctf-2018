@@ -1,6 +1,7 @@
 # C3: Shredded
 
 - Category: Image processing
+- URL: <https://squarectf.com/2018/shredded.html>
 
 ## Description
 

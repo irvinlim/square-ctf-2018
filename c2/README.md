@@ -1,6 +1,7 @@
 # C2: Flipping bits
 
 - Category: Cryptology
+- URL: <https://squarectf.com/2018/flipping_bits.html>
 
 ## Description
 

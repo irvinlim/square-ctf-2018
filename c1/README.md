@@ -1,6 +1,7 @@
 # C1: Dot-n-dash
 
 - Category: Programming
+- URL: <https://squarectf.com/2018/dot-n-dash.html>
 
 ## Description
 
