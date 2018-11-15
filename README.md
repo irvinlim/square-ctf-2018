@@ -1,6 +1,6 @@
 # Square CTF 2018
 
-Writeups for [Square CTF 2018](https://2018.squarectf.com).
+Writeups for [Square CTF 2018](https://squarectf.com/2018/index.html).
 
 ## Team
 
