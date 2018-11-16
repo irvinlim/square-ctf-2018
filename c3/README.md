@@ -77,7 +77,7 @@ However after some quick math we realised it would take forever since there are 
 
 From inspecting the strips more, we realise that each strip's width is exactly the width of a single block/pixel in the QR code. Additionally, there are 6 strips which are completely white. This means that the QR code we are dealing with is 21x21, which corresponds to QR version 1.
 
-We can generate an image that helps us identify the strips better:
+We can generate an image that helps us identify the strips by their index more easily, which will be useful later:
 
 ![with_index](with_index.png)
 
@@ -89,12 +89,72 @@ There are several properties that would allow us to fix the locations for certai
 
 ![Properties](properties.jpg)
 
-- 3x finder patterns: Two of them should be vertically aligned; this means that we can separate the left 7 strips from the right 7 strips
-- Vertical timing pattern: This allows us to identify column 0 from column 6 (the black border of the finder pattern), which are 5 and 26 respectively
+- 3x finder patterns: Two of them should be vertically aligned; this means that we can separate the left 7 strips from the right 7 strips. We need to permute the following:
+  - 2x outer black border
+  - 2x inner white border
+  - 3x middle black square
+- Vertical timing pattern: This allows us to differentiate column 0 from column 6 (the black border of the finder pattern), which are 5 and 26 respectively.
 - White padding: There are two strips (3 and 7) that are not completely white, but give correspond to columns 7 and 13. Since column 7 needs white modules at the bottom as well, can identify that 3 is for column 7 and 7 is for column 13.
 - Horizontal timing pattern: The remaining 5 strips belong to the middle columns, and we can use the modules at row 6 to separate columns 8, 10, 12 from 9 and 11.
 
-This narrows our search space down to the follow set of permutations (indices shown are the column number):
+We can come up with a mapping of the image index to the actual index, based on the above information, but this still needs to be permuted since some of them could be in multiple positions.
+
+```python
+left = [
+    # Blank
+    0,
+    11,
+    9,
+    # Black border
+    5,
+    # White border
+    6,
+    # 3x black inner
+    2,
+    16,
+    25,
+    # White border
+    15,
+    # Black border
+    26,
+    # White padding
+    3,
+]
+
+middle = [
+    # Middle area...
+    4,
+    10,
+    20,
+    19,
+    21,
+]
+
+right = [
+    # White padding
+    7,
+    # Black border
+    14,
+    # White border
+    18,
+    # 3x inner square
+    22,
+    23,
+    24,
+    # White border
+    1,
+    # Black border
+    8,
+    # Blank
+    12,
+    17,
+    13,
+]
+
+joined = left + middle + right
+```
+
+The following shows the column indices that we have to permute with each other, based on the information above as well. Indices shown below correspond to the index in `joined[i]`:
 
 ```python
 permutes = [
@@ -109,7 +169,9 @@ permutes = [
 ]
 ```
 
-This search space of 6912 items can be solved in a reasonable amount of time.
+This search space of 6912 permutations (`2! * 3! * 2! * 3! * 2! * 2! * 2! * 3!`) can be solved in a reasonable amount of time.
+
+_P.S. On hindsight, we realised we missed out on utilising the "dark module" described above which could have reduced it even further to 2304 permutations._
 
 ## Complete exploit
 
