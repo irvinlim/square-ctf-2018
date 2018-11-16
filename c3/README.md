@@ -89,12 +89,12 @@ There are several properties that would allow us to fix the locations for certai
 
 ![Properties](properties.jpg)
 
-- 3x finder patterns: Two of them should be vertically aligned; this means that we can separate the left 7 strips from the right 7 strips. We need to permute the following:
+- 3x finder patterns: Two of the finder patterns should be vertically aligned while the last one is on its own. This means that we can separate the left 7 strips from the right 7 strips. We need to permute the following:
   - 2x outer black border
   - 2x inner white border
   - 3x middle black square
-- Vertical timing pattern: This allows us to differentiate column 0 from column 6 (the black border of the finder pattern), which are 5 and 26 respectively.
-- White padding: There are two strips (3 and 7) that are not completely white, but give correspond to columns 7 and 13. Since column 7 needs white modules at the bottom as well, can identify that 3 is for column 7 and 7 is for column 13.
+- Vertical timing pattern: This allows us to differentiate column 0 from column 6 (the black border of the finder pattern), which are the images 5 and 26 respectively.
+- White padding: There are two strips (3 and 7) that are not completely white, but correspond to columns 7 and 13. Since column 7 needs white modules at the bottom as well, can identify that image 3 is for column 7, and image 7 is for column 13.
 - Horizontal timing pattern: The remaining 5 strips belong to the middle columns, and we can use the modules at row 6 to separate columns 8, 10, 12 from 9 and 11.
 
 We can come up with a mapping of the image index to the actual index, based on the above information, but this still needs to be permuted since some of them could be in multiple positions.
@@ -122,11 +122,15 @@ left = [
 ]
 
 middle = [
-    # Middle area...
+    # Timing pattern is black
     4,
+    # Timing pattern is white
     10,
+    # Timing pattern is black
     20,
+    # Timing pattern is white
     19,
+    # Timing pattern is black
     21,
 ]
 
@@ -137,7 +141,7 @@ right = [
     14,
     # White border
     18,
-    # 3x inner square
+    # 3x black inner
     22,
     23,
     24,
