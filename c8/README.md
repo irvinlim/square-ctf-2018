@@ -268,7 +268,7 @@ See [`exploit.py`](./exploit.py) for the complete Python script.
 ## Flag
 
 ```sh
-$ python ttf.irvin.py
+$ python exploit.py
 [*] Equation: (((((1 * 10) + (5 * 4)) + (((((6 - 9) + (((2 * 1) * 6) * (6 + 8))) + 7) * ((6 - 8) + 5)) + (9 + (7 - 8)))) + (6 + 7)) - (((6 * (8 * 8)) - 4) * ((((3 * 6) + 3) + 3) - ((3 * 6) - ((((2 * (8 * 8)) * ((5 * 2) - (7 * 7))) * ((4 * 9) * 5)) * ((7 + (3 - ((3 * 6) - ((7 + 5) - 8)))) * (1 * (4 * 8))))))))
 [*] Evaluated answer: -43705960113
 [*] Submitting answer...
