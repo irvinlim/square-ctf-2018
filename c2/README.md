@@ -15,11 +15,15 @@ From the given instructions, we are given two separate ciphertexts, two differen
 
 On the basis of this alone, we can exploit the weakness using a **Common Modulus Attack**. This [StackExchange post](https://crypto.stackexchange.com/questions/16283/how-to-use-common-modulus-attack) explains it pretty well.
 
-Essentially, since both `e1` and `e2` are coprime (their GCD is 1), we can write the following:
+Essentially, since both `e1` and `e2` are coprime (their GCD is 1), we make use of [Bézout's identity](https://en.wikipedia.org/wiki/B%C3%A9zout%27s_identity), which states that:
+
+> Let _a_ and _b_ be integers with greatest common divisor _d_. Then, there exist integers _x_ and _y_ such that _ax + by = d_. More generally, the integers of the form _ax + by_ are exactly the multiples of _d_.
+
+We can thus write the following:
 
 ```
 GCD(e1, e2) = 1
-=> e1s1 * e2s2 = 1, for some s1, s2
+=> e1s1 * e2s2 = 1, for some s1, s2 (by Bézout's identity)
 
 c1^s1 * c2^s2 mod N
 = (m^e1)^s1 * (m^e2)^s2 mod N
